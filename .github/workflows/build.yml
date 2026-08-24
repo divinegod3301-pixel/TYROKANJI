@@ -18,7 +18,7 @@ jobs:
       - name: Extract project
         run: |
           mkdir -p extracted
-          unzip -q TYRO_KANJI_PROPER_REBUILD_COMPLETE.zip -d extracted
+          unzip -q TYRO_KANJI_PROPER_REBUILD_FIXED.zip -d extracted
 
       - name: Find Android project
         id: project
