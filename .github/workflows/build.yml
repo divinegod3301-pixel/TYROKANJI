@@ -1,4 +1,4 @@
-name: TYRO KANJI APK
+name: TYROKANJI APK
 
 on:
   workflow_dispatch:
