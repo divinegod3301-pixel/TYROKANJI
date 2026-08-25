@@ -1,4 +1,4 @@
-name: TYROKANJI APK
+name: MaiKanji APK
 
 on:
   workflow_dispatch:
@@ -14,15 +14,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract TYRO KANJI ZIP
+      - name: Extract MaiKanji project
         shell: bash
         run: |
           set -e
 
-          ZIP_FILE="TYRO_KANJI_DICTIONARY_ENRICHED.zip"
+          ZIP_FILE="TYRO_KANJI_FULL_UPDATE.zip"
 
           if [ ! -f "$ZIP_FILE" ]; then
             echo "ERROR: $ZIP_FILE not found!"
+            echo "Files in repository:"
             find . -maxdepth 2 -type f | sort
             exit 1
           fi
@@ -32,26 +33,26 @@ jobs:
 
           unzip -o "$ZIP_FILE" -d extracted
 
-          echo "ZIP extracted:"
-          find extracted -maxdepth 3 -type f | sort
+          echo "ZIP extracted successfully."
 
       - name: Find Gradle project
         shell: bash
         run: |
           set -e
 
-          SETTINGS=$(find extracted -type f \
+          SETTINGS_FILE=$(find extracted -type f \
             \( -name "settings.gradle.kts" -o -name "settings.gradle" \) \
             -print -quit)
 
-          if [ -z "$SETTINGS" ]; then
-            echo "ERROR: settings.gradle.kts not found!"
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "ERROR: Gradle project not found!"
+            find extracted -maxdepth 5 -type f | sort
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$SETTINGS")
+          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
 
-          echo "Gradle project found:"
+          echo "Gradle project found at:"
           echo "$PROJECT_DIR"
 
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
@@ -70,118 +71,21 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Build Debug APK
+      - name: Build MaiKanji Debug APK
         shell: bash
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           set -e
 
-          echo "=================================="
-          echo "BUILDING TYRO KANJI"
-          echo "=================================="
-
-          echo "Current directory:"
+          echo "Building MaiKanji..."
+          echo "Project directory:"
           pwd
-
-          echo "Gradle files:"
-          ls -la
-
-          echo "Settings:"
-          cat settings.gradle.kts
-
-          echo "Building app..."
 
           gradle :app:assembleDebug --stacktrace
 
-      - name: Upload Debug APK
+      - name: Upload MaiKanji APK
         uses: actions/upload-artifact@v4
         with:
-          name: TYRO-KANJI-APK
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-      - name: Build Debug APK
-        shell: bash
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          set -e
-
-          echo "=================================="
-          echo "BUILDING TYRO KANJI"
-          echo "=================================="
-
-          echo "Current directory:"
-          pwd
-
-          echo "Gradle files:"
-          ls -la
-
-          echo "Settings:"
-          cat settings.gradle.kts
-
-          echo "Building app..."
-
-          gradle :app:assembleDebug --stacktrace
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TYRO-KANJI-APK
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-      - name: Find Gradle project
-        shell: bash
-        run: |
-          set -e
-
-          SETTINGS_FILE=$(find extracted -type f \
-            \( -name "settings.gradle.kts" -o -name "settings.gradle" \) \
-            -print -quit)
-
-          if [ -z "$SETTINGS_FILE" ]; then
-            echo "ERROR: Gradle settings file not found."
-            find extracted -maxdepth 5 -type f | sort
-            exit 1
-          fi
-
-          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
-
-          echo "Gradle project:"
-          echo "$PROJECT_DIR"
-
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Build Debug APK
-        shell: bash
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          set -e
-
-          echo "Building from:"
-          pwd
-
-          if [ -f "./gradlew" ]; then
-            chmod +x ./gradlew
-            ./gradlew :app:assembleDebug --stacktrace
-          else
-            echo "No Gradle wrapper found."
-            echo "Installing Gradle..."
-            sudo apt-get update
-            sudo apt-get install -y gradle
-            gradle :app:assembleDebug --stacktrace
-          fi
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TYRO-KANJI-DICTIONARY-APK
+          name: MaiKanji-${{ github.run_number }}
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
