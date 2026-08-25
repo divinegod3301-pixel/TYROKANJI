@@ -14,6 +14,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Find and extract project ZIP
+        shell: bash
+        run: |
+          set -e
+
+          echo "Files in repository:"
+          find . -maxdepth 2 -type f | sort
+
+          ZIP_FILE=$(find . -maxdepth 2 -type f -iname "*.zip" | head -n 1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No ZIP file found."
+            exit 1
+          fi
+
+          echo "Found ZIP: $ZIP_FILE"
+
+          mkdir -p extracted
+          unzip -q "$ZIP_FILE" -d extracted
+
+          echo "Extracted files:"
+          find extracted -maxdepth 3 -type f | sort
+
+      - name: Find Gradle project
+        shell: bash
+        run: |
+          set -e
+
+          PROJECT_DIR=$(find extracted -name settings.gradle.kts -print -quit | xargs dirname)
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERROR: settings.gradle.kts not found."
+            exit 1
+          fi
+
+          echo "Gradle project found at:"
+          echo "$PROJECT_DIR"
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -29,12 +69,14 @@ jobs:
           gradle-version: '8.11.1'
 
       - name: Build Debug APK
-        working-directory: TYRO_KANJI_REAL2
-        run: gradle :app:assembleDebug --stacktrace
+        shell: bash
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          gradle :app:assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: TYRO-KANJI-APK
-          path: TYRO_KANJI_REAL2/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
